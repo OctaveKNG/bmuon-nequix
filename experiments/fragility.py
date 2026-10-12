@@ -1,7 +1,7 @@
 """Section 6.1 / 6.3: accuracy of a model after global type-I channel pruning, no fine-tuning.
 
     python -m experiments.fragility --model models/nequix-mp-1.nqx \
-        --data data/mptrj-aselmdb --n-structures 2000 --out results/fragility_muon.csv
+        --data $BMUON_DATA/mptrj-aselmdb --n-structures 2000 --out results/fragility_muon.csv
 
 Without --data, measures only the deviation from the unpruned model on toy crystals.
 For a BMuon run, pass --alloc runs/<run>/alloc_epochNNN.npz --score alloc.
@@ -30,6 +30,9 @@ def load_structures(args, config):
     from nequix.data import AseDBDataset
 
     ds = AseDBDataset(args.data, config["atomic_numbers"], config["cutoff"], backend="jax")
+    if args.valid_frac > 0:
+        # same split as training (nequix.data.Dataset.split, seed 42): held-out structures only
+        _, ds = ds.split(valid_frac=args.valid_frac)
     rng = np.random.default_rng(args.seed)
     idx = rng.choice(len(ds), min(args.n_structures, len(ds)), replace=False)
     graphs = [ds[int(i)] for i in idx]
@@ -40,8 +43,10 @@ def load_structures(args, config):
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--model", required=True)
-    p.add_argument("--data", default=None, help="aselmdb file or directory (validation split)")
+    p.add_argument("--data", default=None, help="aselmdb file or directory used for training")
     p.add_argument("--n-structures", type=int, default=32)
+    p.add_argument("--valid-frac", type=float, default=0.05,
+                   help="evaluate on the validation split used in training (0: whole --data)")
     p.add_argument("--fractions", default="0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9")
     p.add_argument("--by", choices=["count", "cost"], default="count")
     p.add_argument("--score", choices=["magnitude", "alloc", "random"], default="magnitude")
