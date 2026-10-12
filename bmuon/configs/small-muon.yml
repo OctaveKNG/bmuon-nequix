@@ -4,4 +4,4 @@ hidden_irreps: "128x0e + 64x1o"
 train_subset_frac: 0.1
 valid_subset_frac: 0.2
 n_epochs: 20
-out_dir: "runs/small-muon"
+out_dir: "bmuon/runs/small-muon"

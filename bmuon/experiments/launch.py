@@ -1,8 +1,8 @@
 """Spread training runs over the lab machines by SSH.
 
-    python -m experiments.launch plan   experiments/runs.yml experiments/machines.txt
-    python -m experiments.launch start  experiments/runs.yml experiments/machines.txt
-    python -m experiments.launch status experiments/runs.yml
+    python -m bmuon.experiments.launch plan   bmuon/experiments/runs.yml bmuon/experiments/machines.txt
+    python -m bmuon.experiments.launch start  bmuon/experiments/runs.yml bmuon/experiments/machines.txt
+    python -m bmuon.experiments.launch status bmuon/experiments/runs.yml
 
 machines.txt: one host per line, followed by a GPU tag, e.g. ``ablette 3090``
 (lines starting with # are ignored). runs.yml:
@@ -22,8 +22,8 @@ machines.txt: one host per line, followed by a GPU tag, e.g. ``ablette 3090``
           gpu: [3090]
           values: {budget: [0.2, 0.3, 0.5, 0.7], seed: [0, 1, 2]}
 
-Each run gets one machine; jobs live in runs/<name> and resume on their own
-(experiments/run_forever.sh). Assignments are stored in runs/assignments.json.
+Each run gets one machine; jobs live in bmuon/runs/<name> and resume on their own
+(bmuon/experiments/run_forever.sh). Assignments are stored in bmuon/runs/assignments.json.
 """
 
 from __future__ import annotations
@@ -37,7 +37,7 @@ from pathlib import Path
 
 import yaml
 
-ASSIGN = Path("runs/assignments.json")
+ASSIGN = Path("bmuon/runs/assignments.json")
 
 
 def expand_runs(spec: dict) -> list:
@@ -98,8 +98,8 @@ def remote_command(spec: dict, run: dict) -> str:
     if spec.get("python"):
         env.append(f"BMUON_PYTHON={spec['python']}")
     args = " ".join(shlex.quote(s) for s in run.get("set", []))
-    out = f"runs/{run['name']}"
-    job = (f"{' '.join(env)} nohup bash experiments/run_forever.sh {out} "
+    out = f"bmuon/runs/{run['name']}"
+    job = (f"{' '.join(env)} nohup bash bmuon/experiments/run_forever.sh {out} "
            f"{shlex.quote(run['config'])} {args} > /dev/null 2>&1 &")
     return f"cd {repo} && mkdir -p {out} && {job}"
 

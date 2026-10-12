@@ -240,7 +240,7 @@ def save_allocation(path: Path, spec, state):
 
 def train(config_path: str, overrides: list | None = None):
     config = apply_overrides(load_config(config_path), overrides)
-    out_dir = Path(config.get("out_dir", f"runs/{Path(config_path).stem}"))
+    out_dir = Path(config.get("out_dir", f"bmuon/runs/{Path(config_path).stem}"))
     out_dir.mkdir(parents=True, exist_ok=True)
     with open(out_dir / "config.yml", "w") as f:
         yaml.safe_dump(config, f)

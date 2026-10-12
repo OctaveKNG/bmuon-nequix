@@ -188,8 +188,3 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
-
-# BMuon experiments (generated, not versioned)
-data/toy/
-runs/
-results/

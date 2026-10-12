@@ -1,6 +1,6 @@
 base_config: small-muon.yml
 optimizer: "bmuon"
-out_dir: "runs/small-bmuon"
+out_dir: "bmuon/runs/small-bmuon"
 bmuon:
   budget: 0.3
   anneal_fraction: 0.25

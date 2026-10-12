@@ -3,8 +3,8 @@
 # If a 24 GB card runs out of memory, use batch_size 8 and grad_accum_steps 32.
 base_config: ../../configs/nequix-mp-1.yml
 optimizer: "muon"
-train_path: "$BMUON_DATA/mptrj-aselmdb"   # local copy, see experiments/run_forever.sh
-out_dir: "runs/mp1-muon"
+train_path: "$BMUON_DATA/mptrj-aselmdb"   # local copy, see bmuon/experiments/run_forever.sh
+out_dir: "bmuon/runs/mp1-muon"
 batch_size: 16
 grad_accum_steps: 16
 num_workers: 8

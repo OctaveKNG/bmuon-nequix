@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 # Run one training job until it finishes, resuming after crashes or reboots.
-#   experiments/run_forever.sh <out_dir> <config.yml> [overrides...]
+#   bmuon/experiments/run_forever.sh <out_dir> <config.yml> [overrides...]
 # Env:
 #   BMUON_DATA_SRC  shared copy of the preprocessed data (e.g. on NFS)
 #   BMUON_DATA      local copy used by the configs (default /tmp/$USER/bmuon-data)
 #   BMUON_PYTHON    python interpreter (default: python)
 set -u
+USER="${USER:-$(id -un)}"
 OUT="$1"; CONFIG="$2"; shift 2
 export BMUON_DATA="${BMUON_DATA:-/tmp/$USER/bmuon-data}"
 PY="${BMUON_PYTHON:-python}"

@@ -1,7 +1,7 @@
 """Section 6.2: inference time of Nequix vs the multiplicities entering the tensor product.
 
-    python -m experiments.speed --model models/nequix-mp-1.nqx --kernel \
-        --out results/speed_3090 --cost-json bmuon/configs/costs_3090.json
+    python -m bmuon.experiments.speed --model models/nequix-mp-1.nqx --kernel \
+        --out bmuon/results/speed_3090 --cost-json bmuon/configs/costs_3090.json
 
 Times jitted energy + forces on bulk supercells of increasing size, for
   * the base model,
@@ -27,7 +27,7 @@ from ase.build import bulk
 
 from bmuon.model import with_tp_irreps
 from bmuon.prune import tp_irreps_summary
-from experiments.common import bucket, pad, platform, to_graph
+from bmuon.experiments.common import bucket, pad, platform, to_graph
 from nequix.model import load_model
 
 
@@ -71,7 +71,7 @@ def main():
     p.add_argument("--reps", type=int, default=20)
     p.add_argument("--kernel", action="store_true", help="use OpenEquivariance kernels (GPU)")
     p.add_argument("--stress", action="store_true")
-    p.add_argument("--out", default="results/speed")
+    p.add_argument("--out", default="bmuon/results/speed")
     p.add_argument("--cost-json", default=None)
     args = p.parse_args()
 

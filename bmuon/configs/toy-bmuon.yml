@@ -1,7 +1,7 @@
-# Smoke test on a synthetic EMT dataset (see tests_bmuon/make_toy_db.py). CPU, ~minutes.
-train_path: "data/toy/toy.aselmdb"
+# Smoke test on a synthetic EMT dataset (see bmuon/tests/make_toy_db.py). CPU, ~minutes.
+train_path: "bmuon/data/toy/toy.aselmdb"
 valid_frac: 0.25
-out_dir: "runs/toy-bmuon"
+out_dir: "bmuon/runs/toy-bmuon"
 atomic_numbers: [13, 29]
 cutoff: 4.0
 hidden_irreps: "16x0e + 8x1o + 4x2e"

@@ -1,12 +1,12 @@
 """Section 6.1 / 6.3: accuracy of a model after global type-I channel pruning, no fine-tuning.
 
-    python -m experiments.fragility --model models/nequix-mp-1.nqx \
-        --data $BMUON_DATA/mptrj-aselmdb --n-structures 2000 --out results/fragility_muon.csv
+    python -m bmuon.experiments.fragility --model models/nequix-mp-1.nqx \
+        --data $BMUON_DATA/mptrj-aselmdb --n-structures 2000 --out bmuon/results/fragility_muon.csv
 
 Without --data, measures only the deviation from the unpruned model on toy crystals.
-For a BMuon run, pass --alloc runs/<run>/alloc_epochNNN.npz --score alloc.
+For a BMuon run, pass --alloc bmuon/runs/<run>/alloc_epochNNN.npz --score alloc.
 Channels are removed by zeroing their slices, which is exactly equivalent to the export
-(tested in tests_bmuon/test_prune.py) and avoids recompiling per pruning level.
+(tested in bmuon/tests/test_prune.py) and avoids recompiling per pruning level.
 """
 
 from __future__ import annotations
@@ -19,7 +19,7 @@ import numpy as np
 
 from bmuon.channels import build_channel_spec
 from bmuon.prune import magnitude_scores, select_channels, zero_channels
-from experiments.common import platform, predict, to_graph, toy_structures
+from bmuon.experiments.common import platform, predict, to_graph, toy_structures
 from nequix.model import load_model
 
 
@@ -54,7 +54,7 @@ def main():
     p.add_argument("--cost-model", default="cg")
     p.add_argument("--min-keep", type=int, default=1)
     p.add_argument("--seed", type=int, default=0)
-    p.add_argument("--out", default="results/fragility.csv")
+    p.add_argument("--out", default="bmuon/results/fragility.csv")
     args = p.parse_args()
 
     model, config = load_model(args.model, kernel=False)
