@@ -28,7 +28,7 @@ uv pip install "nvidia-cuda-nvrtc-cu12>=12.8,<13" "nvidia-cuda-nvcc-cu12>=12.8,<
 echo "== minimal CUDA 12 root ($CUDA_ROOT)"
 SITE="$(python -c 'import nvidia, os; print(os.path.dirname(nvidia.__path__[0]))')/nvidia"
 rm -rf "$CUDA_ROOT"
-mkdir -p "$CUDA_ROOT/include" "$CUDA_ROOT/lib64"
+mkdir -p "$CUDA_ROOT/include" "$CUDA_ROOT/lib64" "$CUDA_ROOT/bin"
 for d in cuda_runtime cuda_nvrtc cuda_nvcc; do
   if [ -d "$SITE/$d/include" ]; then
     for f in "$SITE/$d/include"/*; do ln -sfn "$f" "$CUDA_ROOT/include/"; done
@@ -44,10 +44,19 @@ DRV="$(ldconfig -p 2>/dev/null | awk '/libcuda\.so(\.1)? /{print $NF; exit}')"
 if [ -z "$DRV" ]; then echo "NVIDIA driver library libcuda not found" >&2; exit 1; fi
 ln -sf "$DRV" "$CUDA_ROOT/lib64/libcuda.so"
 echo '{"cuda": {"version": "12.8.0"}}' > "$CUDA_ROOT/version.json"
+# Stand-in nvcc: CMake's FindCUDAToolkit locates the toolkit from nvcc and would otherwise pick
+# the incomplete system CUDA 13 (/usr/local/bin/nvcc). Nothing is compiled with it.
+cat > "$CUDA_ROOT/bin/nvcc" <<'NVCC'
+#!/bin/sh
+echo "nvcc: NVIDIA (R) Cuda compiler driver"
+echo "Cuda compilation tools, release 12.8, V12.8.93"
+NVCC
+chmod +x "$CUDA_ROOT/bin/nvcc"
 
 echo "== OpenEquivariance JAX extension"
-CUDAToolkit_ROOT="$CUDA_ROOT" CMAKE_ARGS="-DCUDAToolkit_ROOT=$CUDA_ROOT" \
-  uv pip install --no-build-isolation --reinstall "openequivariance_extjax==0.7.0"
+CUDAToolkit_ROOT="$CUDA_ROOT" \
+CMAKE_ARGS="-DCUDAToolkit_ROOT=$CUDA_ROOT -DCUDAToolkit_NVCC_EXECUTABLE=$CUDA_ROOT/bin/nvcc" \
+  uv pip install --no-cache --no-build-isolation --reinstall "openequivariance_extjax==0.7.0"
 
 echo "== checks"
 python -c "import jax; d = jax.devices(); print(d); assert d[0].platform == 'gpu', 'JAX does not see the GPU'"
