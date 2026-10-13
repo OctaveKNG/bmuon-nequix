@@ -401,11 +401,18 @@ def train(config_path: str, overrides: list | None = None, coordinator: str | No
     ema_model = jax.tree.map(lambda x: x.copy(), model)
     step, start_epoch, best_val_loss, run_id = jnp.array(0), 0, float("inf"), None
 
+    save_every = int(config.get("save_every_steps", 0))  # 0 = checkpoint only at epoch end
     state_path = Path(config.get("state_path") or out_dir / "state.pkl")
+    skip_micro = 0
     if state_path.exists():
         (model, ema_model, _, opt_state, step, start_epoch, best_val_loss,
          run_id) = load_training_state(state_path)
-        print(f"resumed from {state_path} at epoch {start_epoch}", flush=True)
+        if save_every and n_proc > 1:
+            # state.pkl may have been written mid-epoch: recover the epoch and how many of its
+            # micro-steps were already done from the (fixed) global micro-step counter.
+            start_epoch, skip_micro = divmod(int(step), micro_per_epoch)
+        print(f"resumed from {state_path} at epoch {start_epoch}"
+              + (f" (skip {skip_micro} micro-steps)" if skip_micro else ""), flush=True)
     logger = Logger(out_dir, config, run_id) if main_process else None
 
     psum = jax.pmap(lambda x: jax.lax.psum(x, "device"), axis_name="device")
@@ -445,11 +452,18 @@ def train(config_path: str, overrides: list | None = None, coordinator: str | No
         t0 = time.time()
         train_loader.loader.set_epoch(epoch)
         batches = prefetch_n(train_loader, micro_per_epoch) if n_proc > 1 else prefetch(train_loader)
-        for batch in batches:
+        to_skip = skip_micro if epoch == start_epoch else 0
+        for bi, batch in enumerate(batches):
+            if bi < to_skip:  # micro-steps already done before a crash: advance the loader only
+                continue
             model, ema_model, opt_state, total_loss, metrics = train_step(
                 model, ema_model, step, opt_state, batch
             )
             step = step + 1
+            if main_process and save_every and n_proc > 1 and int(step) % save_every == 0:
+                _atomic_dump(state_path, lambda p: save_training_state(
+                    p, model, ema_model, optim, opt_state, step, epoch, best_val_loss,
+                    wandb_run_id=(logger.run_id if logger else None)))
             if step % config["log_every"] == 0 and main_process:
                 logs = {"train/loss": total_loss.mean().item(),
                         "learning_rate": float(schedule(step // accum)),
