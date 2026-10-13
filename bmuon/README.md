@@ -13,6 +13,7 @@ bmuon/
 ├── train.py         training loop (Muon or BMuon), gradient accumulation, auto-resume
 ├── configs/         nequix-mp-1-{muon,bmuon}, small-{muon,bmuon} (dev), toy-bmuon (CPU smoke test)
 ├── experiments/
+│   ├── check_gpu.py     first run on a GPU machine: kernel == e3nn, slice map exact with kernels
 │   ├── fragility.py     §6.1/6.3 accuracy after pruning, no fine-tuning
 │   ├── speed.py         §6.2 timings and measured channel costs (costs_<gpu>.json)
 │   ├── launch.py        spread runs over the lab machines by SSH
@@ -48,6 +49,7 @@ The code was tested with jax 0.5.3, e3nn-jax 0.20.8, equinox 0.13.1, optax 0.2.6
 
 ## Typical commands
 
+    python -m bmuon.experiments.check_gpu
     python -m bmuon.experiments.speed --kernel --out bmuon/results/speed_3090 --cost-json bmuon/configs/costs_3090.json
     python -m bmuon.experiments.fragility --model models/nequix-mp-1.nqx --data $BMUON_DATA/mptrj-aselmdb --n-structures 2000
     python -m bmuon.train bmuon/configs/small-bmuon.yml --set bmuon.budget=0.3 out_dir=bmuon/runs/test
