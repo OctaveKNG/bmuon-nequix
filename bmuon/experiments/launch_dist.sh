@@ -43,10 +43,13 @@ start)
   for i in "${!hosts[@]}"; do
     h="${hosts[$i]}"
     log="/tmp/$USER/dist-$name-rank$i.log"
-    "${SSH[@]}" "$h" "cd $REPO && source $VENV/bin/activate && \
+    # Wrap the whole chain in `nohup bash -c '...'` with the redirect applied to nohup, so no
+    # enclosing subshell keeps the ssh channel open (otherwise ssh blocks until python exits,
+    # which stalls the launch loop) and the process survives when ssh disconnects.
+    "${SSH[@]}" "$h" "nohup bash -c 'cd $REPO && source $VENV/bin/activate && \
       export BMUON_DATA=$DATA XLA_PYTHON_CLIENT_PREALLOCATE=false && \
-      nohup python -m bmuon.train $config --coordinator $coord --num-processes $n \
-        --process-id $i --set out_dir=bmuon/runs/$name ${extra[*]} > $log 2>&1 < /dev/null &"
+      exec python -m bmuon.train $config --coordinator $coord --num-processes $n \
+        --process-id $i --set out_dir=bmuon/runs/$name ${extra[*]}' > $log 2>&1 < /dev/null &"
     echo "  rank $i on $h  (log $h:$log)"
   done
   ;;
