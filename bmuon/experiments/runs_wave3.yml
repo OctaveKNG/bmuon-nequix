@@ -1,6 +1,6 @@
 # Wave 3: section 6.3 (post-training compression), 4 budgets x 3 seeds per method.
 repo: ~/nequix
-data_src: ~/data/bmuon
+data_src: ablette:/tmp/octave.koenig/bmuon-data   # prepared once on ablette, copied to each machine by rsync (needs passwordless ssh between machines)
 runs:
   - grid:
       name: mp1-muon-s{seed}
