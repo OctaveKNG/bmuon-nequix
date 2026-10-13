@@ -19,6 +19,7 @@ bmuon/
 │   ├── speed.py         §6.2 timings and measured channel costs (costs_<gpu>.json)
 │   ├── launch.py        spread runs over the lab machines by SSH
 │   ├── run_forever.sh   one run, resumed until done, results pushed to GitHub
+│   ├── launch_dist.sh   one run spread over several machines (data parallel)
 │   ├── publish_results.sh  commit + push bmuon/results and run logs (rebase, retries)
 │   ├── machines.txt     the 169 lab machines with their GPU
 │   └── runs_*.yml       run plans (pilot, wave 3)
@@ -68,6 +69,13 @@ The code was tested with jax 0.5.3, e3nn-jax 0.20.8, equinox 0.13.1, optax 0.2.6
     python -m bmuon.experiments.launch plan  bmuon/experiments/runs_wave3.yml bmuon/experiments/machines.txt
     python -m bmuon.experiments.launch start bmuon/experiments/runs_wave3.yml bmuon/experiments/machines.txt
     python -m bmuon.experiments.launch status bmuon/experiments/runs_wave3.yml
+
+One run over several machines (global batch = batch_size x grad_accum_steps x hosts, keep 256):
+
+    H="ablette anchois anguille barbeau"
+    bash bmuon/experiments/launch_dist.sh check "$H"
+    bash bmuon/experiments/launch_dist.sh start mp1-bmuon-30 bmuon/configs/nequix-mp-1-bmuon.yml "$H" --set batch_size=64 grad_accum_steps=1
+    bash bmuon/experiments/launch_dist.sh status mp1-bmuon-30 "$H"
 
 ## Implementation notes
 
