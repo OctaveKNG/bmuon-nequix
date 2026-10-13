@@ -18,11 +18,15 @@ bmuon/
 │   ├── fragility.py     §6.1/6.3 accuracy after pruning, no fine-tuning
 │   ├── speed.py         §6.2 timings and measured channel costs (costs_<gpu>.json)
 │   ├── launch.py        spread runs over the lab machines by SSH
-│   ├── run_forever.sh   one run, resumed until done
+│   ├── run_forever.sh   one run, resumed until done, results pushed to GitHub
+│   ├── publish_results.sh  commit + push bmuon/results and run logs (rebase, retries)
 │   ├── machines.txt     the 169 lab machines with their GPU
 │   └── runs_*.yml       run plans (pilot, wave 3)
 ├── tests/           14 tests (see below)
-└── data/ runs/ results/   generated, git-ignored
+├── results/         CSV/JSON of the experiments (versioned)
+├── runs/            one folder per run: config, log.jsonl, hosts.log, alloc every 10 epochs
+│                    (versioned); checkpoints and optimizer states stay on the machine
+└── data/            MPtrj, generated, git-ignored
 ```
 
 All commands are run from the repository root.

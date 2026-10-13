@@ -35,6 +35,12 @@ if ! ready; then
   fi
 fi
 
+# publish logs and results to GitHub every 6 hours while the run is alive, and at the end
+PUBLISH="$(dirname "$0")/publish_results.sh"
+( while sleep 21600; do bash "$PUBLISH" "progress $(basename "$OUT") on $(hostname)" >/dev/null 2>&1; done ) &
+PUBLISHER=$!
+trap 'kill $PUBLISHER 2>/dev/null' EXIT
+
 tries=0
 while [ ! -f "$OUT/DONE" ]; do
   tries=$((tries + 1))
@@ -46,3 +52,4 @@ while [ ! -f "$OUT/DONE" ]; do
   sleep 60
 done
 echo "$(hostname) $(date -Is) done" >> "$OUT/hosts.log"
+bash "$PUBLISH" "finished $(basename "$OUT") on $(hostname)" >> "$OUT/hosts.log" 2>&1
