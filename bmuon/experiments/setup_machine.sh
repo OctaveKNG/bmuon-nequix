@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
-# Install everything needed to run BMuon on this machine, in /tmp/$USER (local disk).
-#   bash bmuon/experiments/setup_machine.sh
-# Idempotent: rerun it after a reboot that wiped /tmp. Takes a few minutes.
+# Install everything needed to run BMuon on this machine, in /tmp/$USER (local disk):
+# the Python environment, the OpenEquivariance kernels and the MPtrj data.
+#   bash bmuon/experiments/setup_machine.sh            # everything (~10 min)
+#   bash bmuon/experiments/setup_machine.sh --no-data  # environment only
+# Idempotent: what is already there is skipped; rerun it after a reboot that wiped /tmp.
 #
 # The lab machines have no full CUDA toolkit, which the OpenEquivariance JAX extension needs
 # to compile. We assemble a minimal CUDA 12 root (headers + libcudart + libnvrtc) from the
@@ -15,7 +17,18 @@ export UV_CACHE_DIR="${UV_CACHE_DIR:-/tmp/$USER/uv-cache}"
 export UV_PYTHON_INSTALL_DIR="${UV_PYTHON_INSTALL_DIR:-/tmp/$USER/uv-python}"
 export UV_PROJECT_ENVIRONMENT="${UV_PROJECT_ENVIRONMENT:-/tmp/$USER/nequix-venv}"
 CUDA_ROOT="/tmp/$USER/cuda12"
+DATA="${BMUON_DATA:-/tmp/$USER/bmuon-data}"
+RAW="/tmp/$USER/raw"
+ZIP="2023-11-22-mp-trj-extxyz-by-yuan.zip"
+WITH_DATA=1
+[ "${1:-}" = "--no-data" ] && WITH_DATA=0
 mkdir -p "/tmp/$USER"
+
+if [ -f "$UV_PROJECT_ENVIRONMENT/.bmuon_ready" ]; then
+  echo "== python environment already installed ($UV_PROJECT_ENVIRONMENT)"
+  # shellcheck disable=SC1091
+  source "$UV_PROJECT_ENVIRONMENT/bin/activate"
+else
 
 command -v uv >/dev/null || curl -LsSf https://astral.sh/uv/install.sh | sh
 
@@ -63,4 +76,27 @@ python -c "import jax; d = jax.devices(); print(d); assert d[0].platform == 'gpu
 # openequivariance imports torch unless OEQ_NOTORCH is set (Nequix sets it the same way)
 OEQ_NOTORCH=1 python -c "import openequivariance, openequivariance_extjax; print('OpenEquivariance OK')"
 touch "$UV_PROJECT_ENVIRONMENT/.bmuon_ready"
+fi
+
+if [ "$WITH_DATA" = 1 ]; then
+  if [ -f "$DATA/mptrj-aselmdb/.complete" ]; then
+    echo "== MPtrj already prepared ($DATA/mptrj-aselmdb)"
+  else
+    echo "== MPtrj: download, unzip, preprocess into $DATA/mptrj-aselmdb (~5-10 min)"
+    mkdir -p "$RAW"
+    if [ ! -f "$RAW/$ZIP" ]; then
+      wget -q --show-progress -O "$RAW/$ZIP.part" https://ndownloader.figshare.com/files/43302033
+      mv "$RAW/$ZIP.part" "$RAW/$ZIP"
+    fi
+    rm -rf "$RAW/mptrj-gga-ggapu"
+    unzip -q "$RAW/$ZIP" -d "$RAW" -x "__MACOSX/*"
+    rm -rf "$DATA/mptrj-aselmdb"
+    python scripts/preprocess_data.py "$RAW/mptrj-gga-ggapu" "$DATA/mptrj-aselmdb"
+    n=$(ls "$DATA"/mptrj-aselmdb/*.aselmdb 2>/dev/null | wc -l)
+    if [ "$n" -ne 16 ]; then echo "preprocessing produced $n files, expected 16" >&2; exit 1; fi
+    touch "$DATA/mptrj-aselmdb/.complete"
+    rm -rf "$RAW/mptrj-gga-ggapu"   # keep only the zip (1.6 GB)
+  fi
+  du -sh "$DATA/mptrj-aselmdb"
+fi
 echo "== ready: source $UV_PROJECT_ENVIRONMENT/bin/activate"
