@@ -16,6 +16,6 @@ runs:
   - grid:
       name: mp1-bmuon-cost-b{budget}-s{seed}
       config: bmuon/configs/nequix-mp-1-bmuon.yml
-      set: ["seed={seed}", "bmuon.budget={budget}", "bmuon.cost_model=bmuon/configs/costs_3090.json"]
+      set: ["seed={seed}", "bmuon.budget={budget}", "bmuon.cost_model=paths"]
       gpu: [a5000, 4000ada]
       values: {budget: [0.2, 0.3, 0.5, 0.7], seed: [0, 1, 2]}

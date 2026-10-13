@@ -94,7 +94,7 @@ def cg_nnz(l1: int, l2: int, l3: int) -> int:
 def path_cost(path_key: PathKey, model: Union[str, dict, Callable] = "cg") -> float:
     """Cost of one copy flowing through one tensor-product path, per edge.
 
-    ``model``: "uniform" (1 per path), "cg" (nonzero CG coefficients), "dims"
+    ``model``: "paths" (1 per path, alias "uniform"), "cg" (nonzero CG coefficients), "dims"
     ((2l1+1)(2l2+1)(2l3+1)), a dict ``{path_key: cost}`` (e.g. measured), or a callable.
     """
     l1, l2, l3 = (e3nn.Irrep(s).l for s in path_key)
@@ -102,7 +102,7 @@ def path_cost(path_key: PathKey, model: Union[str, dict, Callable] = "cg") -> fl
         return float(model(path_key))
     if isinstance(model, dict):
         return float(model[path_key])
-    if model == "uniform":
+    if model in ("uniform", "paths"):
         return 1.0
     if model == "cg":
         return float(cg_nnz(l1, l2, l3))

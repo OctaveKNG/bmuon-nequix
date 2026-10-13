@@ -7,4 +7,4 @@ bmuon:
   alpha: 0.5
   refresh_every: 5
   eps: 1.0e-6
-  cost_model: "cg"
+  cost_model: "paths"

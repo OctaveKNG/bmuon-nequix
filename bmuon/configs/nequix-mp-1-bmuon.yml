@@ -9,4 +9,5 @@ bmuon:
   alpha: 0.5
   refresh_every: 5
   eps: 1.0e-6
-  cost_model: "cg"         # "channel" (paper's count budget), "cg", or a measured costs JSON
+  cost_model: "paths"      # cost of a copy = number of tensor-product paths it feeds (best fit
+                           # to the 3090 timings, corr 0.89); "channel" = count budget of the BMuon paper
