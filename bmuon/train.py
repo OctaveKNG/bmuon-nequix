@@ -488,6 +488,10 @@ def train(config_path: str, overrides: list | None = None, coordinator: str | No
             best_val_loss = float(val["loss"])
             save_model(out_dir / "checkpoint.nqx", ema_single, config_to_save)
         save_model(out_dir / "last.nqx", ema_single, config_to_save)
+        snap_every = int(config.get("snapshot_every_epochs", 0))  # 0 = no periodic snapshots
+        if snap_every and (epoch % snap_every == 0 or epoch == config["n_epochs"] - 1):
+            # permanent (never overwritten) snapshot to prune/compare along the budget anneal
+            save_model(out_dir / f"snap_epoch{epoch:03d}.nqx", ema_single, config_to_save)
         bs = current_bmuon_state()
         save_allocation(out_dir / f"alloc_epoch{epoch:03d}.npz", spec, bs)
         _atomic_dump(state_path, lambda p: save_training_state(
