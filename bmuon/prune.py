@@ -50,8 +50,12 @@ def select_channels(
     by: str = "count",
     min_keep: int | dict = 1,
     round_to: int = 1,
+    exclude_layers: tuple = (),
 ) -> np.ndarray:
     """Global ranking: drop the lowest-scored channels until ``remove_fraction`` is reached.
+
+    ``exclude_layers``: blocks whose channels are never removed; the fraction is then taken
+    over the channels (or cost) of the other blocks only.
 
     ``by``: "count" (fraction of channels) or "cost" (fraction of the total cost w).
     ``min_keep``: minimum copies kept per (block, irrep); an int or a dict irrep -> int.
@@ -60,7 +64,8 @@ def select_channels(
     """
     n = spec.num_channels
     w = spec.weights if by == "cost" else np.ones(n)
-    target = remove_fraction * w.sum()
+    eligible = np.array([c.layer not in set(exclude_layers) for c in spec.channels])
+    target = remove_fraction * w[eligible].sum()
     groups = defaultdict(list)
     for i, c in enumerate(spec.channels):
         groups[(c.layer, c.ir)].append(i)
@@ -74,6 +79,8 @@ def select_channels(
     for i in np.argsort(scores, kind="stable"):
         if removed >= target - 1e-12:
             break
+        if not eligible[i]:
+            continue
         c = spec.channels[i]
         g = (c.layer, c.ir)
         if left[g] <= min(floor(c.ir), len(groups[g])):

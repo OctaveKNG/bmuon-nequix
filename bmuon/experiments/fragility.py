@@ -53,6 +53,8 @@ def main():
     p.add_argument("--alloc", default=None, help="alloc_epochNNN.npz from bmuon.train")
     p.add_argument("--cost-model", default="cg")
     p.add_argument("--min-keep", type=int, default=1)
+    p.add_argument("--exclude-blocks", default="",
+                   help="comma-separated blocks never pruned, e.g. 0 (species embedding)")
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--out", default="bmuon/results/fragility.csv")
     args = p.parse_args()
@@ -74,14 +76,20 @@ def main():
 
     rows = []
     for frac in [float(x) for x in args.fractions.split(",")]:
-        keep = select_channels(scores, spec, frac, by=args.by, min_keep=args.min_keep)
+        excl = tuple(int(x) for x in args.exclude_blocks.split(",") if x != "")
+        keep = select_channels(scores, spec, frac, by=args.by, min_keep=args.min_keep,
+                               exclude_layers=excl)
         e, f = predict(zero_channels(model, spec, keep), graphs)
         row = {
             "fraction": frac,
             "by": args.by,
+            "exclude_blocks": args.exclude_blocks,
             "score": args.score,
             "kept_channels": int(keep.sum()),
             "kept_cost": float(spec.weights[keep].sum() / spec.weights.sum()),
+            **{f"kept_b{t}_{ir}": int(sum(keep[i] for i, c in enumerate(spec.channels)
+                                        if c.layer == t and c.ir == ir))
+               for t, ir in sorted({(c.layer, c.ir) for c in spec.channels})},
             "dev_energy_mae_per_atom": float(np.mean(np.abs(e - e_ref) / n_atoms)),
             "dev_force_mae": float(np.mean(np.abs(np.concatenate(f) - np.concatenate(f_ref)))),
         }
