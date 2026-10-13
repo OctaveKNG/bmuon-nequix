@@ -13,6 +13,7 @@ bmuon/
 ├── train.py         training loop (Muon or BMuon), gradient accumulation, auto-resume
 ├── configs/         nequix-mp-1-{muon,bmuon}, small-{muon,bmuon} (dev), toy-bmuon (CPU smoke test)
 ├── experiments/
+│   ├── setup_machine.sh one-command install on a lab machine (venv + CUDA root + OEQ)
 │   ├── check_gpu.py     first run on a GPU machine: kernel == e3nn, slice map exact with kernels
 │   ├── fragility.py     §6.1/6.3 accuracy after pruning, no fine-tuning
 │   ├── speed.py         §6.2 timings and measured channel costs (costs_<gpu>.json)
@@ -28,8 +29,14 @@ All commands are run from the repository root.
 
 ## Install (pinned like Nequix)
 
-    uv sync --extra oeq && uv pip install openequivariance_extjax --no-build-isolation
-    uv pip install ase-db-backends scipy pytest
+On the lab machines (no CUDA toolkit, small home quota), one command per machine installs
+everything on the local disk `/tmp/$USER`, including a CUDA 12 root assembled from the NVIDIA
+pip wheels so that the OpenEquivariance extension compiles:
+
+    bash bmuon/experiments/setup_machine.sh
+    source /tmp/$USER/nequix-venv/bin/activate
+
+`run_forever.sh` runs it automatically on a machine that is not set up yet.
 
 The code was tested with jax 0.5.3, e3nn-jax 0.20.8, equinox 0.13.1, optax 0.2.6, lmdb 1.x
 (the versions of `uv.lock`). lmdb 3.x breaks Nequix's forked data workers; jax ≥ 0.10 removed
