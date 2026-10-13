@@ -60,6 +60,7 @@ CMAKE_ARGS="-DCUDAToolkit_ROOT=$CUDA_ROOT -DCUDAToolkit_NVCC_EXECUTABLE=$CUDA_RO
 
 echo "== checks"
 python -c "import jax; d = jax.devices(); print(d); assert d[0].platform == 'gpu', 'JAX does not see the GPU'"
-python -c "import openequivariance, openequivariance_extjax; print('OpenEquivariance OK')"
+# openequivariance imports torch unless OEQ_NOTORCH is set (Nequix sets it the same way)
+OEQ_NOTORCH=1 python -c "import openequivariance, openequivariance_extjax; print('OpenEquivariance OK')"
 touch "$UV_PROJECT_ENVIRONMENT/.bmuon_ready"
 echo "== ready: source $UV_PROJECT_ENVIRONMENT/bin/activate"
