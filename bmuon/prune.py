@@ -43,6 +43,23 @@ def magnitude_scores(model, spec: ChannelSpec) -> np.ndarray:
     return np.sqrt(sq)
 
 
+def normalize_by_group(scores: np.ndarray, spec: ChannelSpec) -> np.ndarray:
+    """Divide each score by the median score of its (block, irrep) group.
+
+    Raw slice norms are not comparable across blocks and irreps (different fan-ins, e3nn path
+    constants, RMSNorm in between); a global ranking of raw magnitudes empties whole groups
+    first (e.g. the last block), which says more about the scales than about importance."""
+    out = np.asarray(scores, float).copy()
+    groups = defaultdict(list)
+    for i, c in enumerate(spec.channels):
+        groups[(c.layer, c.ir)].append(i)
+    for ids in groups.values():
+        med = np.median(out[ids])
+        if med > 0:
+            out[ids] = out[ids] / med
+    return out
+
+
 def select_channels(
     scores: np.ndarray,
     spec: ChannelSpec,
@@ -51,8 +68,12 @@ def select_channels(
     min_keep: int | dict = 1,
     round_to: int = 1,
     exclude_layers: tuple = (),
+    per_group: bool = False,
 ) -> np.ndarray:
     """Global ranking: drop the lowest-scored channels until ``remove_fraction`` is reached.
+
+    ``per_group``: instead of a global ranking, remove the same fraction of copies in every
+    (block, irrep) group, the lowest-scored ones (uniform layer-wise pruning).
 
     ``exclude_layers``: blocks whose channels are never removed; the fraction is then taken
     over the channels (or cost) of the other blocks only.
@@ -74,6 +95,16 @@ def select_channels(
         return min_keep.get(ir, 1) if isinstance(min_keep, dict) else min_keep
 
     keep = np.ones(n, bool)
+    if per_group:
+        for g, ids in groups.items():
+            if g[0] in set(exclude_layers):
+                continue
+            ids = np.array(ids)
+            k = min(int(round(remove_fraction * len(ids))), len(ids) - min(floor(g[1]), len(ids)))
+            if k > 0:
+                keep[ids[np.argsort(scores[ids], kind="stable")[:k]]] = False
+        return _round_groups(keep, scores, groups, round_to)
+
     left = {g: len(ids) for g, ids in groups.items()}
     removed = 0.0
     for i in np.argsort(scores, kind="stable"):
@@ -88,7 +119,11 @@ def select_channels(
         keep[i] = False
         left[g] -= 1
         removed += w[i]
+    return _round_groups(keep, scores, groups, round_to)
 
+
+def _round_groups(keep, scores, groups, round_to):
+    """Round the kept copies of every group up to a multiple of ``round_to``."""
     if round_to > 1:
         for g, ids in groups.items():
             ids = np.array(ids)

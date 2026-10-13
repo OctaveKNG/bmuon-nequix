@@ -18,7 +18,7 @@ from pathlib import Path
 import numpy as np
 
 from bmuon.channels import build_channel_spec
-from bmuon.prune import magnitude_scores, select_channels, zero_channels
+from bmuon.prune import magnitude_scores, normalize_by_group, select_channels, zero_channels
 from bmuon.experiments.common import platform, predict, to_graph, toy_structures
 from nequix.model import load_model
 
@@ -49,7 +49,11 @@ def main():
                    help="evaluate on the validation split used in training (0: whole --data)")
     p.add_argument("--fractions", default="0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9")
     p.add_argument("--by", choices=["count", "cost"], default="count")
-    p.add_argument("--score", choices=["magnitude", "alloc", "random"], default="magnitude")
+    p.add_argument("--score", choices=["magnitude", "magnitude-norm", "alloc", "random"],
+                   default="magnitude-norm",
+                   help="magnitude-norm: coupled magnitude divided by its (block, irrep) median")
+    p.add_argument("--selection", choices=["global", "per-group"], default="global",
+                   help="per-group: same fraction removed in every (block, irrep)")
     p.add_argument("--alloc", default=None, help="alloc_epochNNN.npz from bmuon.train")
     p.add_argument("--cost-model", default="cg")
     p.add_argument("--min-keep", type=int, default=1)
@@ -64,6 +68,8 @@ def main():
     print(f"{args.model}: {spec.num_channels} type-I channels\n{spec.summary()}", flush=True)
     if args.score == "magnitude":
         scores = magnitude_scores(model, spec)
+    elif args.score == "magnitude-norm":
+        scores = normalize_by_group(magnitude_scores(model, spec), spec)
     elif args.score == "alloc":
         scores = np.load(args.alloc)["alloc"]
         assert len(scores) == spec.num_channels, "allocation does not match the model"
@@ -78,12 +84,13 @@ def main():
     for frac in [float(x) for x in args.fractions.split(",")]:
         excl = tuple(int(x) for x in args.exclude_blocks.split(",") if x != "")
         keep = select_channels(scores, spec, frac, by=args.by, min_keep=args.min_keep,
-                               exclude_layers=excl)
+                               exclude_layers=excl, per_group=args.selection == "per-group")
         e, f = predict(zero_channels(model, spec, keep), graphs)
         row = {
             "fraction": frac,
             "by": args.by,
             "exclude_blocks": args.exclude_blocks,
+            "selection": args.selection,
             "score": args.score,
             "kept_channels": int(keep.sum()),
             "kept_cost": float(spec.weights[keep].sum() / spec.weights.sum()),
