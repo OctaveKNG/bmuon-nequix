@@ -220,6 +220,7 @@ save_every_steps: 1000
 scale: 0.8066479563713074
 seed: 0
 shift: 0.16502578765761478
+snapshot_every_epochs: 5
 state_path: null
 stress_weight: 5.0
 train_path: /tmp/octave.koenig/bmuon-data/mptrj-aselmdb
