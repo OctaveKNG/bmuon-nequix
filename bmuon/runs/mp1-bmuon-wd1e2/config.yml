@@ -203,8 +203,8 @@ learning_rate: 0.01
 lmax: 3
 log_every: 100
 loss_type: mae
-max_n_edges: 34704
-max_n_nodes: 444
+max_n_edges: 52000
+max_n_nodes: 1024
 mlp_init_scale: 4.0
 n_epochs: 100
 n_layers: 4
