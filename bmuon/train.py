@@ -140,6 +140,7 @@ def build_optimizer(config: dict, model, schedule, total_steps: int):
             eps=cfg.get("eps", 1e-6),
             weight_decay=wd,
             weight_decay_keys=weight_decay_keys(model),
+            selective_weight_decay=cfg.get("selective_weight_decay_prune"),
         )
     else:
         raise ValueError(f"optimizer {name} not supported")

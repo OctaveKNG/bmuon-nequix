@@ -103,6 +103,7 @@ def scale_by_bmuon(
     beta: float = 0.95,
     ns_steps: int = 5,
     nesterov: bool = True,
+    selective_wd=None,
 ) -> optax.GradientTransformation:
     """BMuon direction for the matrices of ``spec``, including Muon's shape rescaling.
 
@@ -150,7 +151,6 @@ def scale_by_bmuon(
         )
 
     def update_fn(updates, state, params=None):
-        del params
         mu = optax.tree.update_moment(updates, state.mu, beta, 1)
         count_inc = state.count + 1
         if nesterov:
@@ -189,6 +189,25 @@ def scale_by_bmuon(
             return delta * jnp.sqrt(jnp.maximum(1.0, fan_out / fan_in))
 
         new_updates = map_by_key(direction, mu_hat)
+
+        # Per-channel selective weight decay: wd_base on all, +wd_prune on dying channels.
+        # Added before scale_by_learning_rate so final = -lr*(direction + wd*W).
+        if selective_wd is not None and params is not None:
+            wd_base_val, wd_prune_val = selective_wd
+            mean_alloc = jnp.maximum(budget / total, eps)
+            p_leaves = leaves_by_key(params)
+
+            def add_selective_wd(key, upd):
+                if key not in p_leaves:
+                    return upd
+                s = slices[key]
+                mu_c = alloc[chan[key]]
+                under_alloc = jnp.maximum(0.0, 1.0 - mu_c / mean_alloc) ** 2
+                wd_vec = wd_base_val + wd_prune_val * under_alloc
+                return upd + _scale(p_leaves[key], wd_vec, s.axis)
+
+            new_updates = map_by_key(add_selective_wd, new_updates)
+
         return new_updates, BMuonState(count_inc, mu, alloc, scores)
 
     return optax.GradientTransformation(init_fn, update_fn)
@@ -215,6 +234,7 @@ def bmuon(
     eps: float = 1e-6,
     weight_decay: Optional[float] = None,
     weight_decay_keys: Optional[set] = None,
+    selective_weight_decay: Optional[float] = None,
     beta: float = 0.95,
     ns_steps: int = 5,
 ) -> optax.GradientTransformation:
@@ -226,10 +246,18 @@ def bmuon(
     budgeted = spec.keypaths
     decay_keys = set(weight_decay_keys or ()) - budgeted
 
+    use_selective = selective_weight_decay is not None and weight_decay is not None
+    sel_wd = (weight_decay, selective_weight_decay) if use_selective else None
+
     budget_branch = [
-        scale_by_bmuon(spec, budget_fraction, alpha, refresh_every, eps, beta, ns_steps)
+        scale_by_bmuon(
+            spec, budget_fraction, alpha, refresh_every, eps, beta, ns_steps,
+            selective_wd=sel_wd,
+        )
     ]
-    if weight_decay:
+    # selective_wd already handles weight decay on budgeted matrices;
+    # only add uniform add_decayed_weights when selective_wd is not active.
+    if weight_decay and not use_selective:
         budget_branch.append(optax.add_decayed_weights(weight_decay))
     budget_branch.append(optax.scale_by_learning_rate(learning_rate))
 
