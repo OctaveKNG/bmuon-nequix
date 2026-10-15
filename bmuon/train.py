@@ -239,9 +239,28 @@ def evaluate_sums(model, dataloader, energy_weight, force_weight, stress_weight,
     return dict(totals), count
 
 
+def _load_state_with_fallback(path: Path):
+    bak = path.with_name(path.name + ".bak")
+    if path.exists():
+        try:
+            return load_training_state(path)
+        except Exception as e:
+            if bak.exists():
+                print(f"WARNING: {path.name} corrupted ({type(e).__name__}), loading backup", flush=True)
+                return load_training_state(bak)
+            raise
+    if bak.exists():
+        print(f"WARNING: {path.name} missing, loading backup", flush=True)
+        return load_training_state(bak)
+    return None
+
+
 def _atomic_dump(path: Path, fn):
     tmp = path.with_name(path.name + ".tmp")
     fn(tmp)
+    bak = path.with_name(path.name + ".bak")
+    if path.exists():
+        os.replace(path, bak)
     os.replace(tmp, path)
 
 
@@ -405,9 +424,10 @@ def train(config_path: str, overrides: list | None = None, coordinator: str | No
     save_every = int(config.get("save_every_steps", 0))  # 0 = checkpoint only at epoch end
     state_path = Path(config.get("state_path") or out_dir / "state.pkl")
     skip_micro = 0
-    if state_path.exists():
+    loaded = _load_state_with_fallback(state_path)
+    if loaded is not None:
         (model, ema_model, _, opt_state, step, start_epoch, best_val_loss,
-         run_id) = load_training_state(state_path)
+         run_id) = loaded
         if save_every and n_proc > 1:
             # state.pkl may have been written mid-epoch: recover the epoch and how many of its
             # micro-steps were already done from the (fixed) global micro-step counter.
