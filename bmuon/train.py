@@ -428,6 +428,9 @@ def train(config_path: str, overrides: list | None = None, coordinator: str | No
     if loaded is not None:
         (model, ema_model, _, opt_state, step, start_epoch, best_val_loss,
          run_id) = loaded
+        # Rebuild optim from loaded model: weight_decay_mask must use the same
+        # FunctionalLinear objects as the model, or jax.tree.map crashes on resume.
+        optim, _ = build_optimizer(config, jax.tree.map(lambda x: x[0], model), schedule, total_steps)
         if save_every and n_proc > 1:
             # state.pkl may have been written mid-epoch: recover the epoch and how many of its
             # micro-steps were already done from the (fixed) global micro-step counter.
