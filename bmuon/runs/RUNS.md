@@ -71,6 +71,21 @@
 
 ---
 
+### `mp1-bmuon-wd1e3` — BMuon, WD uniforme 0.001 (défaut Nequix)
+- **Config :** `bmuon/configs/nequix-mp-1-bmuon.yml`, `--set weight_decay=0.001` (tout le reste identique à `mp1-bmuon-wd1e2`)
+- **Modèle :** Nequix-MP-1 plein — `128x0e + 64x1o + 32x2e + 32x3o`
+- **Optimizer :** BMuon · budget=0.3 · anneal_fraction=0.25 · cost_model="paths"
+- **weight_decay :** 0.001 uniforme (valeur par défaut de Nequix)
+- **Machines :** 16 × RTX 4000 Ada 20 Go (manche, marne, mayenne, …, temporal) · salles 33/35
+- **Coordinateur :** manche · logs NFS : `bmuon/runs/mp1-bmuon-wd1e3/`
+- **Lancé :** vendredi 16 oct 2026, 18h06, départ à zéro (week-end DSI)
+- **But :** compléter le carré 2×2 {BMuon, Muon uniforme} × {wd 1e-2, wd 1e-3} : même BMuon que
+  `mp1-bmuon-wd1e2`, avec le WD par défaut de Nequix. Permet de séparer l'effet de l'optimiseur de celui du WD.
+- **Ce qui le distingue :** seul WD à différer de `mp1-bmuon-wd1e2` ; seul optimiseur à différer de `mp1-uniform-shrink-wd1e3`.
+- **Statut :** en cours — démarré le 16/10/2026 (~55 min/époque mesurés au démarrage)
+
+---
+
 ## Runs terminés / archivés
 
 ### `essai`, `essai1m`, `essai2m`, `essai16m`, `essai64` — Essais techniques
@@ -84,12 +99,15 @@
 
 | Run | Modèle | Optimizer | WD | WD type | GPU |
 |-----|--------|-----------|-----|---------|-----|
-| mp1-bmuon-wd1e2 | plein (B=1.0) | BMuon B=0.3 | 0.01 | uniforme | 3090 |
-| mp1-uniform-shrink-wd1e2 | shrunk (B≈0.3) | Muon | 0.01 | uniforme | bird |
+| mp1-bmuon-wd1e2 | plein (B=1.0) | BMuon B=0.3 | 0.01 | uniforme | 3090 (ép. 0-17) puis 4000 Ada |
+| mp1-bmuon-wd1e3 | plein (B=1.0) | BMuon B=0.3 | 0.001 | uniforme | 4000 Ada |
+| mp1-uniform-shrink-wd1e2 | shrunk (B≈0.3) | Muon | 0.01 | uniforme | A5000 |
 | mp1-uniform-shrink-wd1e3 | shrunk (B≈0.3) | Muon | 0.001 | uniforme | 4000 Ada |
 | mp1-bmuon-selwd | plein (B=1.0) | BMuon B=0.3 | 0.001+0.049 | **sélectif** | 4000 Ada |
 
 > **Comparaisons clés :**
+> - **Carré 2×2** {BMuon, Muon uniforme} × {wd 1e-2, wd 1e-3} : `mp1-bmuon-wd1e2`, `mp1-bmuon-wd1e3`,
+>   `mp1-uniform-shrink-wd1e2`, `mp1-uniform-shrink-wd1e3` (+ `mp1-bmuon-selwd` en plus)
 > - BMuon vs baseline iso-coût : `mp1-bmuon-wd1e2` vs `mp1-uniform-shrink-wd1e2`
 > - Effet du WD sur baseline : `mp1-uniform-shrink-wd1e2` vs `mp1-uniform-shrink-wd1e3`
 > - WD sélectif vs uniforme : `mp1-bmuon-selwd` vs `mp1-bmuon-wd1e2`
@@ -103,10 +121,8 @@ Carré 2×2 `{BMuon, Muon uniforme} × {wd 1e-2, wd 1e-3}` + le run `selwd`. Arr
 process à 7h10 (`timeout`, voir `bmuon/experiments/window.sh` et `launch_dist.sh`) ; filets de sécurité :
 `fleet.sh stop` à 7h20 (cron ablette + bentley), comptage à 7h35 dans `~/fleet_check.log`.
 
-### `mp1-bmuon-wd1e3` — BMuon, WD 0.001 (NOUVEAU, départ à zéro)
-- **Config :** `bmuon/configs/nequix-mp-1-bmuon.yml`, `--set weight_decay=0.001` (le reste identique à `mp1-bmuon-wd1e2`)
-- **Machines :** 16 × RTX 4000 Ada (salle 33/35) · coordinateur `manche`
-- **But :** compléter le carré 2×2 : même BMuon que `wd1e2` mais avec le WD par défaut de Nequix.
+### `mp1-bmuon-wd1e3`
+Nouveau run du week-end : voir son entrée dans « Runs actifs » ci-dessus.
 
 ### Changement de matériel de `mp1-bmuon-wd1e2` (à signaler dans le papier)
 - Les ép. 0-17 ont tourné sur 16 × RTX 3090 (poissons, GPU partagés, ~65 min/époque).
