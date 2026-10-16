@@ -94,3 +94,25 @@
 > - Effet du WD sur baseline : `mp1-uniform-shrink-wd1e2` vs `mp1-uniform-shrink-wd1e3`
 > - WD sélectif vs uniforme : `mp1-bmuon-selwd` vs `mp1-bmuon-wd1e2`
 >   (NB : GPU différents — normaliser par temps/époque ou par coût FLOPs)
+
+---
+
+## Week-end du 16-19 oct 2026 (fenêtre DSI : ven 18h00 (accord DSI du 16 oct.) -> lun 7h30)
+
+Carré 2×2 `{BMuon, Muon uniforme} × {wd 1e-2, wd 1e-3}` + le run `selwd`. Arrêt automatique de chaque
+process à 7h10 (`timeout`, voir `bmuon/experiments/window.sh` et `launch_dist.sh`) ; filets de sécurité :
+`fleet.sh stop` à 7h20 (cron ablette + bentley), comptage à 7h35 dans `~/fleet_check.log`.
+
+### `mp1-bmuon-wd1e3` — BMuon, WD 0.001 (NOUVEAU, départ à zéro)
+- **Config :** `bmuon/configs/nequix-mp-1-bmuon.yml`, `--set weight_decay=0.001` (le reste identique à `mp1-bmuon-wd1e2`)
+- **Machines :** 16 × RTX 4000 Ada (salle 33/35) · coordinateur `manche`
+- **But :** compléter le carré 2×2 : même BMuon que `wd1e2` mais avec le WD par défaut de Nequix.
+
+### Changement de matériel de `mp1-bmuon-wd1e2` (à signaler dans le papier)
+- Les ép. 0-17 ont tourné sur 16 × RTX 3090 (poissons, GPU partagés, ~65 min/époque).
+- Reprise le 16 oct. sur 16 × RTX 4000 Ada (coordinateur `ain`), depuis `state.pkl` : même lot global (256),
+  même code, seuls changent le GPU et la vitesse (~26 min/époque estimé). Les résultats ne dépendent pas de la machine.
+
+### Arrêts du 15 oct. 2026
+- Tous les runs ont été arrêtés le 15 oct. entre 08h05 (wd1e2) et 09h39 (les trois autres) ; dernières époques :
+  wd1e2 ép. 17, uniform-wd1e2 ép. 17, uniform-wd1e3 ép. 25, selwd ép. 21.

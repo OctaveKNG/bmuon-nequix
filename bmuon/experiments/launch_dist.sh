@@ -19,6 +19,8 @@ REPO="$(cd "$(dirname "$0")/../.." && pwd)"
 VENV="/tmp/$USER/nequix-venv"
 DATA="/tmp/$USER/bmuon-data"
 SSH=(ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10)
+# shellcheck source=window.sh
+source "$(dirname "$0")/window.sh"
 
 cmd="${1:-}"; shift || true
 
@@ -37,6 +39,10 @@ start)
   name="$1"; config="$2"; hosts=($3); shift 3
   extra=("$@"); [ "${extra[0]:-}" = "--set" ] && extra=("${extra[@]:1}")
   n=${#hosts[@]}
+  # Fenêtre DSI : on refuse de démarrer hors fenêtre, et chaque process reçoit une durée de vie
+  # (timeout) jusqu'à 7h10 : il s'arrête de lui-même, sans SSH, cron ni NFS.
+  secs=$(window_secs_until_stop) || { echo "REFUS : hors fenêtre d'entraînement (soir 18h30-7h30, week-end ven 18h30-lun 7h30), ou moins de 30 min avant l'arrêt." >&2; exit 1; }
+  echo "arrêt automatique de chaque process dans ${secs}s (7h10)"
   port=$((12000 + $(echo -n "$name" | cksum | cut -d' ' -f1) % 1000))
   coord="${hosts[0]}:$port"
   echo "run $name on $n hosts, coordinator $coord"
@@ -48,7 +54,7 @@ start)
     # which stalls the launch loop) and the process survives when ssh disconnects.
     "${SSH[@]}" "$h" "nohup bash -c 'cd $REPO && source $VENV/bin/activate && \
       export BMUON_DATA=$DATA XLA_PYTHON_CLIENT_PREALLOCATE=false && \
-      exec python -m bmuon.train $config --coordinator $coord --num-processes $n \
+      exec timeout -s TERM -k 90 $secs python -m bmuon.train $config --coordinator $coord --num-processes $n \
         --process-id $i --set out_dir=bmuon/runs/$name ${extra[*]}' > $log 2>&1 < /dev/null &"
     echo "  rank $i on $h  (log $h:$log)"
   done
