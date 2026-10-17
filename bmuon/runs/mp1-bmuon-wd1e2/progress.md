@@ -1,5 +1,5 @@
 # mp1-bmuon-wd1e2 — métriques par époque
-(dernière entrée par époque ; état au 17/10/2026 12:49, dernière époque : 37 ; ép. 0-17 sur 16×RTX 3090, ép. 18+ sur 16×RTX 4000 Ada (même lot global 256))
+(dernière entrée par époque ; état au 17/10/2026 13:36, dernière époque : 38 ; ép. 0-17 sur 16×RTX 3090, ép. 18+ sur 16×RTX 4000 Ada (même lot global 256))
 | ep | temps (min) | E MAE (meV/at) | F MAE (meV/Å) | stress MAE | alloc spent |
 |-----|-------------|----------------|---------------|------------|-------------|
 |   0 |    66.9 |          44.71 |         86.58 | 0.000406 | 0.972 |
@@ -40,3 +40,4 @@
 |  35 |    37.9 |          20.75 |         49.54 | 0.000242 | 0.300 |
 |  36 |    38.5 |          20.54 |         49.47 | 0.000242 | 0.300 |
 |  37 |    45.3 |          20.40 |         48.99 | 0.000241 | 0.300 |
+|  38 |    25.1 |          20.20 |         48.81 | 0.000241 | 0.300 |
