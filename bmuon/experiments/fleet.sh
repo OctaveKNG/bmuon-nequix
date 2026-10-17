@@ -23,8 +23,8 @@ SSH=(ssh -o BatchMode=yes -o ConnectTimeout=8 -o StrictHostKeyChecking=accept-ne
 EXTRA="save_every_steps=1000 snapshot_every_epochs=5 batch_size=16 grad_accum_steps=1 max_n_nodes=1024 max_n_edges=52000"
 
 # --- machines : le premier hôte de chaque groupe est le process 0 (coordinateur) ---------------
-H_BMUON_WD1E2="ain allier ardennes carmor charente cher creuse dordogne doubs essonne finistere gironde indre jura landes loire"
-H_BMUON_WD1E3="manche marne mayenne morbihan moselle saone somme vendee vosges phalange radius rotule sacrum sternum tarse temporal"
+H_BMUON_WD1E2="ain allier xiphoide carmor charente cher creuse dordogne doubs essonne finistere gironde porsche jura landes loire"
+H_BMUON_WD1E3="manche marne tibia morbihan moselle saone somme vendee vosges phalange radius rotule sacrum sternum tarse temporal"
 H_SELWD="bentley bugatti cadillac chrysler corvette ferrari fiat ford jaguar lada maserati mazda nissan niva peugeot pontiac"
 H_UNI_WD1E2="albatros autruche bengali coucou epervier faisan gelinotte harpie hibou jabiru kamiche linotte loriol mouette nandou ombrette"
 H_UNI_WD1E3="acromion apophyse astragale atlas axis coccyx cote cubitus cuboide femur frontal humerus malleole metacarpe parietal perone"
@@ -140,13 +140,17 @@ stop)
   echo "OK : plus aucun process d'entraînement sur $(echo $STOP_HOSTS | wc -w) machines" ;;
 
 repair)
+  if [ -n "$(find "$HOME/.fleet_lock" -mmin -30 2>/dev/null)" ]; then echo "verrou ~/.fleet_lock présent (opération manuelle en cours) : aucune action"; exit 0; fi
+  exec 9>"$HOME/.fleet_repair.lock"; flock -n 9 || { echo "un autre repair est en cours : aucune action"; exit 0; }
   # Filets : jamais hors fenêtre ; jamais de suppression/écrasement de state ; pas de boucle de relances.
   if ! window_secs_until_stop >/dev/null; then echo "hors fenêtre (ou <30 min avant l'arrêt de 7h10) : aucune action"; exit 0; fi
   for r in "${RUNS[@]}"; do
     hosts="$(run_hosts "$r")"; dir="$REPO/bmuon/runs/$r"
     [ -f "$dir/DONE" ] && { echo "$r : terminé (DONE)"; continue; }
     n=$(active_count "$hosts"); age=$(log_age "$r" "$hosts")
-    if [ "$n" -eq 16 ] && [ "$age" -lt 1200 ]; then echo "$r : OK ($n/16 machines, log il y a ${age}s)"; continue; fi
+    fatal=$("${SSH[@]}" "${hosts%% *}" "tail -n 80 /tmp/\$USER/dist-$r-rank0.log 2>/dev/null | grep -ac 'Terminating process because the JAX distributed service'; true" 2>/dev/null); fatal=${fatal:-0}
+    if [ "$n" -eq 16 ] && [ "$age" -lt 600 ] && [ "$fatal" -eq 0 ]; then echo "$r : OK ($n/16 machines, log il y a ${age}s)"; continue; fi
+    [ "$fatal" -gt 0 ] && echo "  $r : erreur fatale JAX dans le log du process 0"
     cf="$HOME/.fleet_repairs_$r"; now=$(date +%s)
     recent=$(awk -v t=$((now-10800)) '$1>t' "$cf" 2>/dev/null | wc -l)
     if [ "$recent" -ge 3 ]; then echo "$r : PROBLEME PERSISTANT ($n/16, log il y a ${age}s) - 3 réparations en 3 h, je n'insiste pas : à regarder"; continue; fi

@@ -76,7 +76,8 @@
 - **Modèle :** Nequix-MP-1 plein — `128x0e + 64x1o + 32x2e + 32x3o`
 - **Optimizer :** BMuon · budget=0.3 · anneal_fraction=0.25 · cost_model="paths"
 - **weight_decay :** 0.001 uniforme (valeur par défaut de Nequix)
-- **Machines :** 16 × RTX 4000 Ada 20 Go (manche, marne, mayenne, …, temporal) · salles 33/35
+- **Machines :** 16 × RTX 4000 Ada 20 Go (manche, marne, tibia, morbihan, …, temporal) · salles 33/35 ;
+  `mayenne` (carte réseau à 100 Mb/s) remplacée par `tibia` à la relance du 16/10 à 18h49
 - **Coordinateur :** manche · logs NFS : `bmuon/runs/mp1-bmuon-wd1e3/`
 - **Lancé :** vendredi 16 oct 2026, 18h06, départ à zéro (week-end DSI)
 - **But :** compléter le carré 2×2 {BMuon, Muon uniforme} × {wd 1e-2, wd 1e-3} : même BMuon que
@@ -132,3 +133,13 @@ Nouveau run du week-end : voir son entrée dans « Runs actifs » ci-dessus.
 ### Arrêts du 15 oct. 2026
 - Tous les runs ont été arrêtés le 15 oct. entre 08h05 (wd1e2) et 09h39 (les trois autres) ; dernières époques :
   wd1e2 ép. 17, uniform-wd1e2 ép. 17, uniform-wd1e3 ép. 25, selwd ép. 21.
+
+### Incidents du 16-17 oct. 2026
+- **Cartes réseau à 100 Mb/s** sur `ardennes`, `indre` (groupe `bmuon-wd1e2`) et `mayenne` (groupe `bmuon-wd1e3`) au lieu de 1000 :
+  ces deux runs tournaient à ~60 min/époque au lieu de ~30. Remplacées par `xiphoide` / `porsche` (wd1e2, relancé à 19h09 juste
+  après un checkpoint) et `tibia` (wd1e3, 18h49). Gain mesuré : ~2,3x. Sur 90 machines contrôlées, ce sont les seules à 100 Mb/s.
+- **Arrêt de `bmuon-wd1e3` le 16/10 à 18h43** : 7 machines d'un autre sous-réseau ont cessé d'envoyer leurs heartbeats JAX, pendant une
+  copie rsync de l'environnement entre salles (cause probable, non prouvée). Relancé depuis son state, rien perdu hors ~8 min.
+- **Arrêt des 5 runs le 17/10 de 7h20 à 12h38** (5h19 perdues) : un cron de sécurité `fleet.sh stop` prévu pour lundi s'exécutait
+  tous les jours ; les relances de la surveillance en session ne se sont pas déclenchées (PC probablement en veille). Crons restreints
+  au lundi ; un cron `fleet.sh repair` toutes les 15 min tourne maintenant sur ablette. States intacts, reprise propre.
