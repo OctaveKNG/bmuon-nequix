@@ -1,5 +1,5 @@
 # mp1-uniform-shrink-wd1e2 — métriques par époque
-(dernière entrée par époque ; état au 18/10/2026 17:39, dernière époque : 99)
+(dernière entrée par époque ; état au 18/10/2026 20:45, dernière époque : 99)
 | ep | temps (min) | E MAE (meV/at) | F MAE (meV/Å) | stress MAE |
 |-----|-------------|----------------|---------------|------------|
 |   0 |     5.0 |          56.91 |         97.68 | 0.000467 |

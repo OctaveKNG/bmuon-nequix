@@ -162,7 +162,7 @@ repair)
     n=$(active_count "$hosts"); age=$(log_age "$r" "$hosts")
     fatal=$("${SSH[@]}" "${hosts%% *}" "tail -n 80 /tmp/\$USER/dist-$r-rank0.log 2>/dev/null | grep -ac 'Terminating process because the JAX distributed service'; true" 2>/dev/null); fatal=${fatal:-0}
     nh=$(echo $hosts | wc -w)
-    if [ "$n" -eq "$nh" ] && [ "$age" -lt 600 ] && [ "$fatal" -eq 0 ]; then echo "$r : OK ($n/$nh machines, log il y a ${age}s)"; continue; fi
+    if [ "$n" -eq "$nh" ] && [ "$age" -lt 1500 ] && [ "$fatal" -eq 0 ]; then echo "$r : OK ($n/$nh machines, log il y a ${age}s)"; continue; fi
     [ "$fatal" -gt 0 ] && echo "  $r : erreur fatale JAX dans le log du process 0"
     cf="$HOME/.fleet_repairs_$r"; now=$(date +%s)
     recent=$(awk -v t=$((now-10800)) '$1>t' "$cf" 2>/dev/null | wc -l)
