@@ -105,6 +105,7 @@
 | mp1-uniform-shrink-wd1e2 | shrunk (B≈0.3) | Muon | 0.01 | uniforme | A5000 |
 | mp1-uniform-shrink-wd1e3 | shrunk (B≈0.3) | Muon | 0.001 | uniforme | 4000 Ada |
 | mp1-bmuon-selwd | plein (B=1.0) | BMuon B=0.3 | 0.001+0.049 | **sélectif** | 4000 Ada |
+| mp1-selwd-late-wd0p1 | plein (B=1.0) | BMuon B=0.3 | 0.1 (dès ép. 81) | sélectif + 0.1 | 4000 Ada (8) |
 
 > **Comparaisons clés :**
 > - **Carré 2×2** {BMuon, Muon uniforme} × {wd 1e-2, wd 1e-3} : `mp1-bmuon-wd1e2`, `mp1-bmuon-wd1e3`,
@@ -143,3 +144,21 @@ Nouveau run du week-end : voir son entrée dans « Runs actifs » ci-dessus.
 - **Arrêt des 5 runs le 17/10 de 7h20 à 12h38** (5h19 perdues) : un cron de sécurité `fleet.sh stop` prévu pour lundi s'exécutait
   tous les jours ; les relances de la surveillance en session ne se sont pas déclenchées (PC probablement en veille). Crons restreints
   au lundi ; un cron `fleet.sh repair` toutes les 15 min tourne maintenant sur ablette. States intacts, reprise propre.
+
+### `mp1-selwd-late-wd0p1` — branche de `selwd` avec weight decay fort tardif
+- **Idée :** entraîner `selwd` jusqu'à l'époque 80, puis augmenter beaucoup le weight decay pour vider les canaux faibles avant d'élaguer.
+- **Config :** `nequix-mp-1-bmuon-selwd.yml`, `--set weight_decay=0.1` (terme sélectif `selective_weight_decay_prune` 0.049 inchangé).
+- **Départ :** copie de `state.pkl` de `selwd` juste après l'époque 80 (copie dans `~/selwd-fork80`, le run `selwd` n'a pas été touché), reprise à l'époque 81.
+- **Machines :** 8 × RTX 4000 Ada (acromion, astragale, axis, cote, frontal, malleole, metacarpe, parietal), lot 32 par machine SANS accumulation
+  (l'état d'optimiseur de `selwd` n'a pas la structure MultiSteps), remplissage doublé (max_n_nodes=2048, max_n_edges=104000) ; lot global 256.
+- **Lancé :** dim. 18/10/2026 03h32 ; terminé (DONE) le même jour, ~10,9 h de calcul.
+- **Résultat (ép. 99) :** E 18.92 meV/atome, F 51.00 meV/Å, stress 0.000250, contre `selwd` : E 10.61, F 34.35. Précision nettement dégradée (F +48 %) :
+  la valeur 0.1 est trop forte. Pic d'erreur à l'ép. 88 (F 54.2), puis récupération partielle.
+- **Allocation :** presque binaire dès l'ép. 90 : canaux au plancher 166 (ép. 81) -> 542 (ép. 90) -> 548 (ép. 99) sur 857, canaux intermédiaires 502 -> 8.
+
+### Suite du week-end (17-18 oct. 2026)
+- **Remplacement de 7 machines de `bmuon-wd1e3`** (marne, morbihan, moselle, somme, rotule, sacrum, sternum -> apophyse, atlas, coccyx, cubitus, cuboide, femur, humerus),
+  dim. 01h37, à cause d'une charge CPU d'un autre compte (~15 cœurs par machine) ; l'autre compte a rattrapé 2 des 7 machines en moins d'une demi-heure.
+- **Réparation automatique de `bmuon-wd1e2`** dim. 05h00 (log figé 17 min, 16/16 processus vivants), reprise depuis le state de 04h35.
+- **Runs terminés :** `uniform-wd1e3` (sam. 19h25, ép. 99 : E 18.53 / F 52.61), `uniform-wd1e2` (dim. 05h09 : E 19.04 / F 52.95),
+  `selwd` (dim. 12h05 : E 10.61 / F 34.35).

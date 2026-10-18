@@ -24,7 +24,7 @@ EXTRA="save_every_steps=1000 snapshot_every_epochs=5 batch_size=16 grad_accum_st
 
 # --- machines : le premier hôte de chaque groupe est le process 0 (coordinateur) ---------------
 H_BMUON_WD1E2="ain allier xiphoide carmor charente cher creuse dordogne doubs essonne finistere gironde porsche jura landes loire"
-H_BMUON_WD1E3="manche marne tibia morbihan moselle saone somme vendee vosges phalange radius rotule sacrum sternum tarse temporal"
+H_BMUON_WD1E3="manche apophyse tibia atlas coccyx saone cubitus vendee vosges phalange radius cuboide femur humerus tarse temporal"
 H_SELWD="bentley bugatti cadillac chrysler corvette ferrari fiat ford jaguar lada maserati mazda nissan niva peugeot pontiac"
 H_UNI_WD1E2="albatros autruche bengali coucou epervier faisan gelinotte harpie hibou jabiru kamiche linotte loriol mouette nandou ombrette"
 H_UNI_WD1E3="acromion apophyse astragale atlas axis coccyx cote cubitus cuboide femur frontal humerus malleole metacarpe parietal perone"
@@ -34,22 +34,34 @@ H_FISH="ablette anchois anguille barbeau brochet carrelet gardon gymnote labre l
 H_SPARE="tibia xiphoide porsche renault rover royce simca skoda venturi volvo"
 
 RUNS=(mp1-bmuon-wd1e2 mp1-bmuon-wd1e3 mp1-bmuon-selwd mp1-uniform-shrink-wd1e2 mp1-uniform-shrink-wd1e3)
+# branche tardive de selwd (repart de son état à l'époque 80 avec un weight decay fort) : hôtes fixés au lancement
+FORK=mp1-selwd-late-wd0p1
+H_FORK="acromion astragale axis cote frontal malleole metacarpe parietal"
+[ -n "$H_FORK" ] && RUNS+=("$FORK")
 run_cfg()   { case "$1" in
   mp1-bmuon-wd1e2)          echo "bmuon/configs/nequix-mp-1-bmuon.yml";;
   mp1-bmuon-wd1e3)          echo "bmuon/configs/nequix-mp-1-bmuon.yml";;
   mp1-bmuon-selwd)          echo "bmuon/configs/nequix-mp-1-bmuon-selwd.yml";;
   mp1-uniform-shrink-wd1e2) echo "bmuon/configs/nequix-mp-1-uniform.yml";;
+  mp1-selwd-late-wd0p1)     echo "bmuon/configs/nequix-mp-1-bmuon-selwd.yml";;
   mp1-uniform-shrink-wd1e3) echo "bmuon/configs/nequix-mp-1-uniform-wd1e3.yml";; esac; }
 run_wd()    { case "$1" in
   mp1-bmuon-wd1e2|mp1-uniform-shrink-wd1e2) echo "0.01";;
+  mp1-selwd-late-wd0p1) echo "0.1";;
   *) echo "0.001";; esac; }
 run_hosts() { case "$1" in
   mp1-bmuon-wd1e2)          echo "$H_BMUON_WD1E2";;
   mp1-bmuon-wd1e3)          echo "$H_BMUON_WD1E3";;
   mp1-bmuon-selwd)          echo "$H_SELWD";;
   mp1-uniform-shrink-wd1e2) echo "$H_UNI_WD1E2";;
+  mp1-selwd-late-wd0p1)     echo "$H_FORK";;
   mp1-uniform-shrink-wd1e3) echo "$H_UNI_WD1E3";; esac; }
-ALL_HOSTS="$H_BMUON_WD1E2 $H_BMUON_WD1E3 $H_SELWD $H_UNI_WD1E2 $H_UNI_WD1E3"
+# 8 machines pour la branche : lot de 32 par machine SANS accumulation (même structure d'état d'optimiseur que selwd),
+# remplissage doublé ; lot global inchangé (256).
+run_extra() { case "$1" in
+  mp1-selwd-late-wd0p1) echo "$EXTRA" | sed "s/batch_size=16/batch_size=32/; s/max_n_nodes=1024/max_n_nodes=2048/; s/max_n_edges=52000/max_n_edges=104000/";;
+  *) echo "$EXTRA";; esac; }
+ALL_HOSTS="$H_BMUON_WD1E2 $H_BMUON_WD1E3 $H_SELWD $H_UNI_WD1E2 $H_UNI_WD1E3 $H_FORK"
 STOP_HOSTS="$ALL_HOSTS $H_FISH $H_SPARE"
 NEW_HOSTS="$H_BMUON_WD1E2 $H_BMUON_WD1E3"
 
@@ -112,7 +124,7 @@ start)
     busy=0; for h in $hosts; do c=$(nproc_on "$h"); [ "$c" != "0" ] && { echo "  $r : $h a déjà $c process -> run NON lancé"; busy=1; }; done
     [ $busy -eq 1 ] && continue
     echo "=== $r (wd=$(run_wd "$r"))"
-    bash "$LD" start "$r" "$(run_cfg "$r")" "$hosts" --set weight_decay="$(run_wd "$r")" $EXTRA || echo "  >>> $r : lancement refusé/échoué"
+    bash "$LD" start "$r" "$(run_cfg "$r")" "$hosts" --set weight_decay="$(run_wd "$r")" $(run_extra "$r") || echo "  >>> $r : lancement refusé/échoué"
   done ;;
 
 status)
@@ -121,7 +133,7 @@ status)
     for h in $hosts; do c=$(nproc_on "$h"); [ "$c" != "0" ] && [ "$c" != "?" ] && n=$((n+1)); done
     coord=${hosts%% *}
     last=$("${SSH[@]}" "$coord" "grep -a \"'epoch'\" /tmp/\$USER/dist-$r-rank0.log 2>/dev/null | tail -n 1 | cut -c1-110" 2>/dev/null)
-    echo "$r : $n/16 machines actives | $last"
+    echo "$r : $n/$(echo $hosts | wc -w) machines actives | $last"
   done ;;
 
 count)
@@ -149,7 +161,8 @@ repair)
     [ -f "$dir/DONE" ] && { echo "$r : terminé (DONE)"; continue; }
     n=$(active_count "$hosts"); age=$(log_age "$r" "$hosts")
     fatal=$("${SSH[@]}" "${hosts%% *}" "tail -n 80 /tmp/\$USER/dist-$r-rank0.log 2>/dev/null | grep -ac 'Terminating process because the JAX distributed service'; true" 2>/dev/null); fatal=${fatal:-0}
-    if [ "$n" -eq 16 ] && [ "$age" -lt 600 ] && [ "$fatal" -eq 0 ]; then echo "$r : OK ($n/16 machines, log il y a ${age}s)"; continue; fi
+    nh=$(echo $hosts | wc -w)
+    if [ "$n" -eq "$nh" ] && [ "$age" -lt 600 ] && [ "$fatal" -eq 0 ]; then echo "$r : OK ($n/$nh machines, log il y a ${age}s)"; continue; fi
     [ "$fatal" -gt 0 ] && echo "  $r : erreur fatale JAX dans le log du process 0"
     cf="$HOME/.fleet_repairs_$r"; now=$(date +%s)
     recent=$(awk -v t=$((now-10800)) '$1>t' "$cf" 2>/dev/null | wc -l)
