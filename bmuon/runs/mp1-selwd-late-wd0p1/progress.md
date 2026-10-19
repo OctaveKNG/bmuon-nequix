@@ -1,5 +1,5 @@
 # mp1-selwd-late-wd0p1 — métriques par époque
-(dernière entrée par époque ; état au 18/10/2026 20:45, dernière époque : 99 ; branche de selwd : repart de son état à l'époque 80 avec weight_decay=0.1, 8×RTX 4000 Ada, lot 32×8 sans accumulation)
+(dernière entrée par époque ; état au 19/10/2026 04:26, dernière époque : 99 ; branche de selwd : repart de son état à l'époque 80 avec weight_decay=0.1, 8×RTX 4000 Ada, lot 32×8 sans accumulation)
 | ep | temps (min) | E MAE (meV/at) | F MAE (meV/Å) | stress MAE | alloc spent |
 |-----|-------------|----------------|---------------|------------|-------------|
 |  81 |    29.3 |          15.52 |         41.27 | 0.000223 | 0.300 |

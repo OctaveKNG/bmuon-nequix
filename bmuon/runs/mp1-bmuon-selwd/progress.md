@@ -1,5 +1,5 @@
 # mp1-bmuon-selwd — métriques par époque
-(dernière entrée par époque ; état au 18/10/2026 20:45, dernière époque : 99)
+(dernière entrée par époque ; état au 19/10/2026 04:26, dernière époque : 99)
 | ep | temps (min) | E MAE (meV/at) | F MAE (meV/Å) | stress MAE | alloc spent |
 |-----|-------------|----------------|---------------|------------|-------------|
 |   0 |    34.3 |          43.64 |         86.01 | 0.000410 | 0.972 |
